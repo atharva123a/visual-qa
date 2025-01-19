@@ -106,11 +106,13 @@ curl --location 'http://127.0.0.1:8000/process-request' \
 
 3. **Cache Fallback**:
    - If no match is found, a computer vision function is used to detect the relevant screen element coordinates.
+   - In case there are no labels that match with the extracted text from the image, we pass it to another function that uses YOLO to match target text with shapes that it extracted from the image.
    - The resulting coordinates, along with the image hash and label, are cached for future use.
+   - There is also another bool stored to track whether the hash was generated based on textract extraction or yolo extraction.
 
 4. **Cache Structure**:
    - Key: Combination of image hash and label.
-   - Value: Coordinates (array of coordinates).
+   - Value: Json of Coordinates (array of coordinates) and whether it was detected using the vision model or not.
 
 5. **Response**:
    - If the label matches the cache, the cached coordinates are returned.
