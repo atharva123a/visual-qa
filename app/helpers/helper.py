@@ -10,13 +10,13 @@ config = config_load()
 
 openai_client = OpenAI(api_key=config["openai_api_key"])
 
-def set_cache(image_hash: str, label: str, coordinates: dict):
+def set_cache(image_hash: str, label: str, coordinates: List[int]):
     """
     Set a cache entry in Redis.
     Args:
         image_hash (str): Unique hash of the image.
         label (str): Label extracted from LLM.
-        coordinates (dict): Coordinates detected from CV function.
+        coordinates (List[int]): Coordinates detected from CV function.
     """
     key = f"{image_hash}:{label}"
     value = json.dumps(coordinates)
@@ -51,9 +51,6 @@ def find_label(prompt: str) -> str:
 
     system_prompt = f"You are a helpful assistant that extracts the label for a given instruction. A label is a single word that points to a specific part of the image that the instruction is referring to. An example: Tap on the search bar should return search. Toggle the cafe button should return cafe. Return only the label, no other text. If you cannot find the label, return 'unknown'. The prompt is: {prompt}"
     
-    print(prompt, 'user_prompt')
-    print(system_prompt, 'system_prompt')
-
     response = openai_client.chat.completions.create(
         messages=[
             {
@@ -63,7 +60,6 @@ def find_label(prompt: str) -> str:
         ],
         model="gpt-4o",
     )
-    print(response.choices[0].message.content, 'label')
     return response.choices[0].message.content
 
 def map_instruction_to_label(instruction: str, labels: List[str], cache: Cache):
@@ -105,7 +101,6 @@ def map_instruction_to_label(instruction: str, labels: List[str], cache: Cache):
         temperature=0,
     )
     label = response.choices[0].message.content
-    print('label that was matched internally with our redis cache', label)
     return label
 
 def retreive_best_match(instruction, labels):

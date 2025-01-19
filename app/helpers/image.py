@@ -3,8 +3,8 @@ from PIL import Image
 import imagehash
 from typing import Tuple, List
 from app.db import redis_client, model
-from app.helpers.helper import get_labels, retreive_best_match, find_label
-
+from app.helpers.helper import get_labels, retreive_best_match, find_label, get_cache, set_cache
+from app.utils.cv import highlight_coordinates
 
 # using this to generate unique hash for each image:
 def generate_image_hash(image_path):
@@ -33,7 +33,7 @@ def get_or_store_coordinates(
     image_hash = generate_image_hash(image_path)
 
     labels = get_labels(image_hash)
-    print(labels, 'labels')
+    print(labels, 'labels from redis')
     
     matched_label = retreive_best_match(prompt, labels)
 
@@ -44,9 +44,11 @@ def get_or_store_coordinates(
         success, coordinates = detect_coordinates_function(image_path, label)
         if(not success):
             return False, []
+        coordinates = coordinates[0]
         
-        redis_client.set(f"{image_hash}:{label}", str(coordinates))
+        set_cache(image_hash, label, coordinates)
         return True, coordinates
 
-    coordinates = redis_client.get(f"{image_hash}:{matched_label}")
+    coordinates = get_cache(image_hash, matched_label)
+    highlight_coordinates(image_path, matched_label, coordinates)
     return True, coordinates

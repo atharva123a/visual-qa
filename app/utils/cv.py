@@ -3,7 +3,9 @@ from typing import List, Dict, Tuple
 import numpy as np
 import pytesseract
 import os
+from sentence_transformers import util
 from PIL import Image
+from app.db import model
 
 
 def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool, List[Tuple[int, int, int, int]]]:
@@ -26,7 +28,7 @@ def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool
     
     detected_text = pytesseract.image_to_data(binary, output_type=pytesseract.Output.DICT)
     
-    target_word = instruction.split("'")[1]
+    target_word = instruction
     print(target_word, 'target_word')
     matches = []
     
@@ -47,3 +49,13 @@ def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool
 
     # Return success flag and matched bounding boxes
     return len(matches) > 0, matches
+
+def highlight_coordinates(image_path: str, target_word: str, coordinates: List[int]):
+    image = cv2.imread(image_path)
+    x, y, w, h = coordinates
+    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2) 
+    cv2.putText(image, target_word, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+    cv2.imshow("Highlighted Text", image)
+    cv2.waitKey(6000) 
+    cv2.destroyAllWindows()
