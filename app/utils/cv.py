@@ -17,9 +17,11 @@ def detect_objects(image_path: str, target: str) -> List[Tuple[int, int, int, in
 
 
     image = cv2.imread(image_path)
+    # original_height, original_width = image.shape[:2]
 
     # Run YOLO on resized dimensions (e.g., 1536x1536)
-    results = model(image_path, imgsz=1536, conf=0.7) 
+    results = model(image_path, imgsz=1536, conf=0.7)  # YOLO resizes the image internally
+    # results = model(image_path, imgsz=1536, conf=0.7, augment=True)  # YOLO resizes the image internally
 
     detections = []  
     detected_results = []
@@ -37,19 +39,18 @@ def detect_objects(image_path: str, target: str) -> List[Tuple[int, int, int, in
                 cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green box
                 cv2.putText(image, f"{label} ({confidence:.2f})", (x1, y1 - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-                # returning integer coordinates, because we store them as integers inside redis
-                x1, y1, x2, y2 = [int(coordinates[0]), int(coordinates[1]),
-                          int(coordinates[2]), int(coordinates[3])]
                 detections.append((x1, y1, x2, y2))
 
+                print(f"Detected {label} at {coordinates} with confidence {confidence:.2f}")
+                break
+    
     cv2.imshow("Detections", image)
     cv2.waitKey(0) 
     cv2.destroyAllWindows()
 
     if(len(detections) == 0):
         return False, []
-
-    # returns success, detections, object_detection
+    print(detections, 'detections')
     return True, detections, True
 
 def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool, List[Tuple[int, int, int, int]]]:
