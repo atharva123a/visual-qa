@@ -13,6 +13,7 @@ This project implements a Visual QA pipeline that uses a combination of cryptogr
 - [Running the Application](#running-the-application)
 - [Usage](#usage)
 - [How It Works](#how-it-works)
+- [Optimisations and Improvements](#optimisations-and-improvements)
 
 ---
 
@@ -114,8 +115,27 @@ curl --location 'http://127.0.0.1:8000/process-request' \
 5. **Response**:
    - If the label matches the cache, the cached coordinates are returned.
    - If no match is found, the pipeline generates new coordinates and returns them while updating the cache.
-   - In case the instruction is irrelevant or the cv function is unable to find that particular keyword, it returns an empty array which is not hashed.
 
 ---
 
-That’s it! You’re now ready to use the Visual QA pipeline.
+## Optimisations and Improvements
+
+### Current Implementation
+- Right now, all labels that are matched on a particular screen are passed to the LLM to figure out a similarity match.
+- The CV function only returns coordinates that exactly match with the extracted text from Tesseract.
+
+### Future Optimisations
+1. **Pre-filtering Labels Before LLM Matching**:
+   - To improve performance, run a similarity check **before** invoking the LLM.
+   - Retrieve the top 10 matching labels using:
+     - An index-based similarity search mechanism (e.g., FAISS).
+     - A smaller, lightweight model for quick similarity scoring in smaller use cases.
+   - Pass only the top 10 most relevant labels to the LLM to fetch the most accurate match.
+   
+   This optimisation reduces the load on the LLM and enhances response times, especially in cases with a large number of cached labels.
+
+2. **Improving Text-Instruction Matching for Coordinates**:
+   - Run a similarity check between the extracted text and the instruction keyword text.
+   - Based on the similarity scores, return the coordinates if the score exceeds a certain threshold (e.g., > 0.8).
+
+   This ensures that text extraction errors or slight mismatches do not prevent relevant coordinates from being returned.
