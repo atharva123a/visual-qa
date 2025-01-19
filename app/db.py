@@ -1,7 +1,19 @@
 import redis
+from sentence_transformers import SentenceTransformer
+from multiprocessing import resource_tracker
 
-# Initialize a global variable for the Redis client
+# Initialize global variables
 redis_client = None
+model = None
+
+def initialize_model():
+    global model
+    if model is None:
+        model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')  # Force CPU processing
+    return model
+
+def get_model():
+    return model
 
 def initialize_redis_connection(host='localhost', port=6379, db=0, password=None) -> redis.StrictRedis:
     global redis_client
@@ -22,4 +34,5 @@ def initialize_redis_connection(host='localhost', port=6379, db=0, password=None
 def return_redis_client():
     return redis_client
 
+# Initialize services
 redis_client = initialize_redis_connection()
