@@ -4,7 +4,7 @@ import json
 from typing import Tuple, List
 from app.db import redis_client, model
 from app.helpers.helper import get_labels, retreive_best_match, find_label, get_cache, set_cache
-from app.utils.cv import highlight_coordinates
+from app.utils.cv import highlight_coordinates, initial_image_processing
 
 # using this to generate unique hash for each image:
 def generate_image_hash(image_path):
@@ -35,6 +35,11 @@ def get_or_store_coordinates(
     labels = get_labels(image_hash)
     print(labels, 'labels from redis')
     
+    if(len(labels) == 0):
+        initial_image_processing(image_path, image_hash)
+        # return True, []
+
+    labels = get_labels(image_hash)
     matched_label = retreive_best_match(prompt, labels)
 
     if(matched_label == 'unknown'):
