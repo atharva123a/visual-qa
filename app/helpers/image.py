@@ -2,9 +2,9 @@ import hashlib
 from PIL import Image
 import imagehash
 from typing import Tuple, List
-from fuzzywuzzy import process
+from app.db import redis_client, model
+from app.helpers.helper import get_labels, retreive_best_match, find_label
 
-from app.db import redis_client
 
 # using this to generate unique hash for each image:
 def generate_image_hash(image_path):
@@ -31,28 +31,22 @@ def get_or_store_coordinates(
     """
     # Generate the image hash
     image_hash = generate_image_hash(image_path)
-    key_prefix = f"hash:{image_hash}" 
 
-    # Retrieve all keys for this hash
-    matching_keys = redis_client.keys(f"{key_prefix}:*")
-    print(matching_keys, 'matching_keys')
-    prompts_in_cache = [key.split(":")[2] for key in matching_keys]
+    labels = get_labels(image_hash)
+    print(labels, 'labels')
+    
+    matched_label = retreive_best_match(prompt, labels)
 
-    # Perform fuzzy search to check if prompt exists
-    best_match, similarity = process.extractOne(prompt, prompts_in_cache) if prompts_in_cache else (None, 0)
-    print(best_match, similarity, 'best_match, similarity')
-    if similarity >= 80: 
-        print(best_match, 'best_match')
-        # Retrieve cached coordinates
-        cached_coordinates = redis_client.get(f"{key_prefix}:{best_match}")
-        return True, eval(cached_coordinates)
+    if(matched_label == 'unknown'):
+        print("could not find match inside our redis cache")
+        label = find_label(prompt)
+        print(label, 'idenitfied this label from instruction')
+        success, coordinates = detect_coordinates_function(image_path, label)
+        if(not success):
+            return False, []
+        
+        redis_client.set(f"{image_hash}:{label}", str(coordinates))
+        return True, coordinates
 
-    # Prompt does not exist; generate and store coordinates
-    coordinates = detect_coordinates_function(image_path, prompt)
-
-    # Store in Redis as hash:{prompt}
-    redis_key = f"{key_prefix}:{prompt}"
-    redis_client.set(redis_key, str(coordinates))
-
-    return False, coordinates
-
+    coordinates = redis_client.get(f"{image_hash}:{matched_label}")
+    return True, coordinates
