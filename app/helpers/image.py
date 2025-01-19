@@ -1,6 +1,6 @@
 import hashlib
 from PIL import Image
-import imagehash
+import json
 from typing import Tuple, List
 from app.db import redis_client, model
 from app.helpers.helper import get_labels, retreive_best_match, find_label, get_cache, set_cache
@@ -41,14 +41,19 @@ def get_or_store_coordinates(
         print("could not find match inside our redis cache")
         label = find_label(prompt)
         print(label, 'idenitfied this label from instruction')
-        success, coordinates = detect_coordinates_function(image_path, label)
+        success, coordinates, object_detection = detect_coordinates_function(image_path, label)
         if(not success):
             return False, []
         coordinates = coordinates[0]
         
-        set_cache(image_hash, label, coordinates)
+        set_cache(image_hash, label, coordinates, object_detection)
         return True, coordinates
 
-    coordinates = get_cache(image_hash, matched_label)
-    highlight_coordinates(image_path, matched_label, coordinates)
+    value = get_cache(image_hash, matched_label)
+    # value = json.loads(value)
+    coordinates = value['coordinates']
+    object_detection = value['object_detection']
+
+    print(coordinates, object_detection, 'coordinates and object_detection')
+    highlight_coordinates(image_path, matched_label, coordinates, object_detection)
     return True, coordinates

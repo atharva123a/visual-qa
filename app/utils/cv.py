@@ -1,12 +1,57 @@
 import cv2
 from typing import List, Dict, Tuple
 import numpy as np
+from ultralytics import YOLO
 import pytesseract
 import os
 from sentence_transformers import util
 from PIL import Image
+
 from app.db import model
 
+
+def detect_objects(image_path: str, target: str) -> List[Tuple[int, int, int, int]]:
+
+    print('tesserect could not find the target word, so running yolo')
+    model = YOLO('yolov8x.pt')
+
+
+    image = cv2.imread(image_path)
+    # original_height, original_width = image.shape[:2]
+
+    # Run YOLO on resized dimensions (e.g., 1536x1536)
+    results = model(image_path, imgsz=1536, conf=0.7)  # YOLO resizes the image internally
+    # results = model(image_path, imgsz=1536, conf=0.7, augment=True)  # YOLO resizes the image internally
+
+    detections = []  
+    detected_results = []
+    for result in results:
+        for box in result.boxes:
+            coordinates = box.xyxy.tolist()[0] 
+            confidence = box.conf[0].item()  
+            class_id = int(box.cls[0].item())
+            label = model.names[class_id] 
+
+            if(label.lower() == target.lower()):
+                detected_results.append(result)
+                x1, y1, x2, y2 = [int(coordinates[0]), int(coordinates[1]),
+                          int(coordinates[2]), int(coordinates[3])]
+                cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)  # Green box
+                cv2.putText(image, f"{label} ({confidence:.2f})", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                detections.append((x1, y1, x2, y2))
+
+                print(f"Detected {label} at {coordinates} with confidence {confidence:.2f}")
+                break
+    
+    cv2.imshow("Detections", image)
+    cv2.waitKey(0) 
+    cv2.destroyAllWindows()
+
+    if(len(detections) == 0):
+        return False, []
+    print(detections, 'detections')
+    return True, detections, True
 
 def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool, List[Tuple[int, int, int, int]]]:
     """
@@ -29,7 +74,7 @@ def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool
     detected_text = pytesseract.image_to_data(binary, output_type=pytesseract.Output.DICT)
     
     target_word = instruction
-    print(target_word, 'target_word')
+
     matches = []
     
     for i, text in enumerate(detected_text['text']):
@@ -48,14 +93,28 @@ def detect_coordinates_function(image_path: str, instruction: str) -> Tuple[bool
     cv2.destroyAllWindows()
 
     # Return success flag and matched bounding boxes
-    return len(matches) > 0, matches
+    if(len(matches) > 0):
+        # returns success, matches, object_detection
+        return True, matches, False
+    
+    return detect_objects(image_path, target_word)
 
-def highlight_coordinates(image_path: str, target_word: str, coordinates: List[int]):
+def highlight_coordinates(image_path: str, target_word: str, coordinates: List[float], object_detection: bool = False):
     image = cv2.imread(image_path)
     x, y, w, h = coordinates
-    cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2) 
-    cv2.putText(image, target_word, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    if(not object_detection):
+        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2) 
+        cv2.putText(image, target_word, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-    cv2.imshow("Highlighted Text", image)
-    cv2.waitKey(6000) 
-    cv2.destroyAllWindows()
+        cv2.imshow("Highlighted Text", image)
+        cv2.waitKey(6000) 
+        cv2.destroyAllWindows()
+    else:
+        cv2.rectangle(image, (x, y), (w, h), (0, 255, 0), 2)  # Green box
+        cv2.putText(image, f"{target_word}", (x, y - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        cv2.imshow("Highlighted Text", image)
+        cv2.waitKey(6000) 
+        cv2.destroyAllWindows()
+

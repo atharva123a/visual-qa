@@ -10,19 +10,25 @@ config = config_load()
 
 openai_client = OpenAI(api_key=config["openai_api_key"])
 
-def set_cache(image_hash: str, label: str, coordinates: List[int]):
+def set_cache(image_hash: str, label: str, coordinates: List[int], object_detection: bool):
     """
     Set a cache entry in Redis.
     Args:
         image_hash (str): Unique hash of the image.
         label (str): Label extracted from LLM.
         coordinates (List[int]): Coordinates detected from CV function.
+        object_detection (bool): True if object detection, False if text detection.
     """
+    cache_value = {
+        "coordinates": coordinates,
+        "object_detection": object_detection
+    }
+    
     key = f"{image_hash}:{label}"
-    value = json.dumps(coordinates)
+    value = json.dumps(cache_value)
     redis_client.set(key, value)
+    
     print(f"Set cache: {key} -> {value}")
-
 
 def get_cache(image_hash: str, label: str) -> dict:
     """
