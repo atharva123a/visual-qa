@@ -6,3 +6,9 @@ __pycache__
 .env
 yolov8n.pt
 yolov8x.pt
+/fruits-360_dataset_100x100
+/fruits-360_dataset_original-size
+/archive.zip
+/filtered_fruits
+/datasets
+/runs

@@ -1,0 +1,6 @@
+val: /Users/atharva/Documents/visual_qa_pipeline/datasets/val/images # Optional, use a subset of images as validation data
+train: /Users/atharva/Documents/visual_qa_pipeline/datasets/train/images # Optional, use a subset of images as validation data
+
+nc: 4 # Number of classes (e.g., Apple, Banana)
+names: ['apple', 'banana', 'lemon', 'strawberry'] # Class names in the same order as the class IDs
+
