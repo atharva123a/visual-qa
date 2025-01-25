@@ -6,3 +6,10 @@ __pycache__
 .env
 yolov8n.pt
 yolov8x.pt
+/datasets
+/filtered_fruits
+/fruits-360_dataset_100x100
+/fruits-360_dataset_original-size
+/runs
+moondream-0_5b-int8.mf
+moondream-2b-int8.mf
