@@ -1,0 +1,11 @@
+gradio
+kagglehub
+opencv-python
+ultralytics
+scikit-learn
+PyYAML
+torch
+torchvision
+numpy
+pandas
+huggingface_hub
